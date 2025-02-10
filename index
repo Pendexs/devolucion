@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Procedimientos</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(to right, #333333, #1f1f1f);
+            color: #f1f1f1;
+            text-align: center;
+            padding: 50px;
+            margin: 0;
+        }
+        h1 {
+            color: #e6e6e6;
+            margin-bottom: 30px;
+        }
+        #pregunta {
+            font-size: 1.2em;
+            margin-bottom: 20px;
+        }
+        button {
+            background-color: #555555;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 1em;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin: 10px;
+        }
+        button:hover {
+            background-color: #444444;
+        }
+        input[type="text"] {
+            padding: 10px;
+            font-size: 1em;
+            width: 80%;
+            margin: 10px 0;
+            border-radius: 8px;
+            border: 1px solid #444444;
+            background-color: #2c2c2c;
+            color: #f1f1f1;
+        }
+        #resultado {
+            margin-top: 30px;
+            font-size: 1.5em;
+            color: #cccccc;
+        }
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        .part-list {
+            margin-top: 20px;
+            font-size: 1em;
+            color: #ccc;
+            text-align: left;
+        }
+        .part-list ul {
+            padding-left: 20px;
+        }
+        .part-list li {
+            margin-bottom: 5px;
+        }
+    </style>
+    <script>
+        let partNumbers = []; // Lista de números de parte vacía inicialmente
+        let step = 0;
+
+        // Cargar el archivo JSON con los números de parte
+        function cargarPartNumbers() {
+            fetch('part_numbers.json')  // El archivo JSON debe estar en el mismo directorio que tu HTML
+                .then(response => response.json())
+                .then(data => {
+                    partNumbers = data.partNumbers;
+                    console.log("Números de parte cargados:", partNumbers);
+                })
+                .catch(error => console.error("Error al cargar el archivo JSON:", error));
+        }
+
+        function procesar(respuesta) {
+            const partNumber = document.getElementById('part_number').value;
+
+            if (step === 0) {
+                if (respuesta === 'sí') {
+                    mostrarResultado("CON REPLENISH");
+                    return;
+                } else if (respuesta === 'no') {
+                    step = 1;
+                    mostrarPregunta("¿Hay stock en T1?");
+                    return;
+                }
+            }
+
+            if (step === 1) {
+                if (respuesta === 'no') {
+                    mostrarResultado("CON REPLENISH");
+                    return;
+                } else if (respuesta === 'sí') {
+                    step = 2;
+                    mostrarPregunta("Número de parte:");
+                    return;
+                }
+            }
+
+            if (step === 2) {
+                if (partNumbers.includes(partNumber)) {
+                    mostrarResultado("CON REPLENISH");
+                } else {
+                    mostrarResultado("SIN REPLENISH");
+                }
+            }
+        }
+
+        function mostrarPregunta(pregunta) {
+            document.getElementById('pregunta').innerHTML = `<label>${pregunta}</label><br>`;
+
+            document.getElementById('garantia_input').style.display = 'none';
+            document.getElementById('stock_input').style.display = 'none';
+            document.getElementById('part_number_input').style.display = 'none';
+
+            if (pregunta === "Número de parte:") {
+                document.getElementById('part_number_input').style.display = 'block';
+                mostrarListaPartes(); // Mostrar lista de partes cargada
+            } else if (pregunta === "¿Hay stock en T1?") {
+                document.getElementById('stock_input').style.display = 'block';
+            } else {
+                document.getElementById('garantia_input').style.display = 'block';
+            }
+        }
+
+        function mostrarListaPartes() {
+            const listContainer = document.getElementById('part_list');
+            listContainer.innerHTML = '<h3>Lista de números de parte:</h3>';
+            const ul = document.createElement('ul');
+            partNumbers.forEach(part => {
+                const li = document.createElement('li');
+                li.textContent = part;
+                ul.appendChild(li);
+            });
+            listContainer.appendChild(ul);
+        }
+
+        function mostrarResultado(resultado) {
+            document.getElementById('resultado').innerHTML = `<h2>${resultado}</h2>`;
+            document.querySelectorAll('input').forEach(input => input.disabled = true);
+            document.querySelectorAll('button').forEach(button => button.disabled = true);
+        }
+
+        window.onload = function() {
+            cargarPartNumbers(); // Cargar los números de parte al inicio
+            mostrarPregunta("¿Está en garantía?");
+            document.getElementById('garantia_input').style.display = 'block';
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Gestión de Procedimientos</h1>
+
+        <div id="pregunta"></div>
+
+        <div id="garantia_input" style="display:none;">
+            <button onclick="procesar('sí')">Sí</button>
+            <button onclick="procesar('no')">No</button>
+        </div>
+
+        <div id="stock_input" style="display:none;">
+            <button onclick="procesar('sí')">Sí</button>
+            <button onclick="procesar('no')">No</button>
+        </div>
+
+        <div id="part_number_input" style="display:none;">
+            <input type="text" id="part_number" placeholder="Ingrese número de parte" required>
+            <button onclick="procesar('no')">Confirmar</button>
+        </div>
+
+        <div id="part_list" class="part-list" style="display:none;"></div>
+
+        <div id="resultado"></div>
+    </div>
+</body>
+</html>
